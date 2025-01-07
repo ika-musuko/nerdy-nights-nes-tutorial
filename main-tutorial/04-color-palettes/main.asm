@@ -44,6 +44,7 @@ clearram:
 	sta	$0600, x
 	sta	$0700, x
 
+	; we will use $02xx for sprites
 	; move all sprites off screen
 	lda	#$fe
 	sta	$0200, x
@@ -59,14 +60,14 @@ _start:
 LoadPalettes:
 	; first, set the color palette address
 	; we store palettes at $3F00
-	; $2006 is the PPU address, which is 16 bit, so requires 2 writes
+	; $2006 is the PPU address (PPUADDR), which is 16 bit, so requires 2 writes
 	lda	$2002		; read PPU status to set the high/low latch to high
 	lda	#$3f		; write high byte
 	sta	$2006
 	lda	#$00		; write low byte
 	sta	$2006		; now the value is $3f10
 
-	; now we can write to $2007 to set the palette colors
+	; now we can write to $2007 (PPUDATA) to set the palette colors
 	ldx	#$00
 LoadPalettesLoop:
 	lda	PaletteData, x
@@ -76,17 +77,47 @@ LoadPalettesLoop:
 	bne	LoadPalettesLoop
 
 
+SetupSprites:
+	; put sprite 0 in center ($80) of screen vertically
+	lda	#$80
+	sta	$0200
+	; put sprite 0 in center ($80) of screen horizontally
+	sta	$0203
+
+	lda	#$00
+	sta	$0201		; tile number = 0
+	sta	$0202		; color palette = 0, no flipping
+
+	lda	#%1_00000_00	; enable NMI, sprites from pattern table 0
+	sta	$2000		; PPUCTRL
+
+	lda	#%000_10_00_0	; black background, enable sprites
+	sta	$2001		; PPUMASK
+	
+
 forever:
 	jmp	forever
 
 
 
 NMI:
+;; load sprites using DMA (direct memory access)
+; this needs to happen during NMI because it has to happen at the beginning
+; of the vblank period
+;
+; NMI happens once per frame so this is going to get called every frame
+;
+	; load sprites into $0200
+	lda	#$00
+	sta	$2003		; set low byte of ram address ($2003 OAMADDR)
+	lda	#$02
+	sta	$4014		; set high byte of ram address ($4014 OAMDMA)
+				; automatically start sprite DMA transfer
+
 	rti
 
 
 ;;;;;;;;;;;;;;;;
-
 	.bank	1
 ;; data ;;
 	.org	$e000
@@ -105,4 +136,8 @@ PaletteData:
 	.dw	0		; irq unused
 
 
-
+;;;;;;;;;;;;;;;;
+	.bank	2
+;; additional data files ;;
+	.org	$0000
+	.incbin	"mario.chr"

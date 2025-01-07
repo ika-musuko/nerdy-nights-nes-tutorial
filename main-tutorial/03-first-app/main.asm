@@ -1,9 +1,9 @@
+; vim: set noexpandtab tabstop=8 shiftwidth=8:
 ; information the emulator needs about the game:
 	.inesmap 0 		; mapper 0 = NROM, no bank swapping
 	.inesmir 1		; background mirroring (ignore for now)
 	.inesprg 1		; include 1x 16kb bank of prg code
 	.ineschr 1 		; include 1x 8kb bank of chr data
-
 
 ; here we tell the assembler where to put the code in memory
 	.bank	0
@@ -28,16 +28,34 @@ RESET:
 	stx	$4010		; disable dmc irq
 
 
-; TODO: understand the following
-;	- what $2002 is
-;	- why we are bit testing it (anding $2002 with A?)
-;	- how that affects the negative flag for the bpl  
-
-; wait for vblank to make sure ppu is ready
-vblankwait1:			
-	bit	$2002		
-	bpl	vblankwait1	
-				
+; wait for vblank to happen to make sure ppu is ready
+vblankwait1:
+				; $2002 is the PPU status register
+				;
+				; according to p.25 of NESDoc.pdf
+				; during vblank, bit 7 of $2002 is set.
+				;
+				; we have to wait for the nes to refresh
+				; the screen, during which $2002 bit 7 is
+				; NOT set. when the screen is ready, "vblank"
+				; (vertical blank) has happened, and $2002
+				; bit 7 is set.
+				;
+				;
+	bit	$2002		; "bit" operation
+				; - N = bit7
+				; - V = bit6
+				; - Z = A & memory
+				;
+				; the value of the accumulator is irrelevant here
+				; because we only care about whether the N flag is
+				; set for bpl
+				;
+				;
+	bpl	vblankwait1	; bpl branches if the N flag is NOT set,
+				; iow, vblank has NOT happened yet and
+				; the ppu is NOT ready
+				;
 
 ; TODO: understand the following
 ;	- why we are doing ", x"
@@ -47,9 +65,9 @@ vblankwait1:
 ;	- why we are branching back to clrmem when x is not zero
 clrmem:
 	lda	#$00
-	sta	$0000, x	
-	sta	$0100, x	
-	sta	$0100, x	
+	sta	$0000, x
+	sta	$0100, x
+	sta	$0100, x
 	sta	$0200, x
 	sta	$0400, x
 	sta	$0500, x
@@ -90,7 +108,7 @@ NMI:
 
 	.dw	RESET	; jump to RESET label on reset interrupt
 			; this is what happens when the system starts up
-			
+
 	.dw	0	; irq_handler unused here
 
 

@@ -1,5 +1,5 @@
 ; vim: set noexpandtab tabstop=8 shiftwidth=8:
-; information the emulator needs about the game:
+;; config ;;
 	.inesmap 0 		; mapper 0 = NROM, no bank swapping
 	.inesmir 1		; background mirroring (ignore for now)
 	.inesprg 1		; include 1x 16kb bank of prg code

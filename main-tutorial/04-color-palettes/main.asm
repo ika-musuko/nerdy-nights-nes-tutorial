@@ -46,6 +46,9 @@ clearram:
 
 	; we will use $02xx for sprites
 	; move all sprites off screen
+	;
+	; see comment below about the sprite data structure
+	; regarding Y and X position for why setting this to $fe works
 	lda	#$fe
 	sta	$0200, x
 
@@ -78,8 +81,28 @@ LoadPalettesLoop:
 
 
 SetupSprites:
+	; sprite data structure:
+	; - byte 0: Y position ($00~$ef, top->bottom. $f0~, off screen)
+	; - byte 1: tile number, tile number to be taken from pattern table
+	; - byte 2: attributes
+	;     76543210
+	;     |||   ||
+  	;     |||   ++- Color Palette of sprite.
+	;     |||       Choose which set of 4 from the 16 colors to use
+  	;     |||
+  	;     ||+------ Priority (0: in front of background; 1: behind background)
+  	;     |+------- Flip sprite horizontally
+  	;     +-------- Flip sprite vertically
+	; - byte 3: X position ($00-$f9, left->right. $fa~, off screen)
+	;
+	; this data structure is repeated for each sprites so:
+	;   - $0200~$0203: sprite 0
+	;   - $0204~$0207: sprite 1
+	;   - $0208~$020b: sprite 2
+	;   etc
+
 	; put sprite 0 in center ($80) of screen vertically
-	lda	#$80
+	lda	#$40
 	sta	$0200
 	; put sprite 0 in center ($80) of screen horizontally
 	sta	$0203
@@ -93,7 +116,7 @@ SetupSprites:
 
 	lda	#%000_10_00_0	; black background, enable sprites
 	sta	$2001		; PPUMASK
-	
+
 
 forever:
 	jmp	forever

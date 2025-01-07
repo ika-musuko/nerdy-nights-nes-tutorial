@@ -9,10 +9,6 @@
 	.bank	0
 	.org	$8000		; cartridge start
 
-; TODO: understand the following
-;	- why txs sets up the stack
-;	- why x is now zero when we increment it
-
 RESET:
 	sei			; disable irq (see $fffe)
 	cld			; disable decimal mode
@@ -20,8 +16,12 @@ RESET:
 	ldx	#$40
 	stx	$4017		; disable APU frame irq
 
-	txs			; set up stack
-	inx			; now x = 0
+				; set up stack
+	ldx	#$ff
+	txs
+				; (btw, no stack overflow on
+				; nes, it just wraps back around
+				; to $ff)
 
 	stx	$2000		; disable NMI
 	stx	$2001		; disable rendering
@@ -71,9 +71,9 @@ clearram:
 
 	sta	$0200, x	; ram ($0200~$07ff)
 
-	sta	$0300, x	; the original code set $03xx to #$fe,
+	sta	$0300, x	; the original code set $03xx to $fe,
 				; but i didn't notice a difference in functionality
-				; so i'm just setting it to #$00
+				; so i'm just setting it to $00
 	sta	$0400, x
 	sta	$0500, x
 	sta	$0600, x

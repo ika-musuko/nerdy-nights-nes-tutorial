@@ -57,26 +57,32 @@ vblankwait1:
 				; the ppu is NOT ready
 				;
 
-; TODO: understand the following
-;	- why we are doing ", x"
-;	- what locations $0000~$0700 are
-;	- why only $0300 gets value #$fe
-;	- why we are incrementing x
-;	- why we are branching back to clrmem when x is not zero
-clrmem:
+; clear each ram region out concurrently
+; this is because we only have 8-bit values for indices
+	ldx	#$00
+clearram:
 	lda	#$00
-	sta	$0000, x
-	sta	$0100, x
-	sta	$0100, x
-	sta	$0200, x
+				; , x is indexed access
+				; sta $memory, x is like memory[x] in c
+
+	sta	$0000, x	; zero page
+
+	sta	$0100, x	; stack
+
+	sta	$0200, x	; ram ($0200~$07ff)
+
+	sta	$0300, x	; the original code set $03xx to #$fe,
+				; but i didn't notice a difference in functionality
+				; so i'm just setting it to #$00
 	sta	$0400, x
 	sta	$0500, x
 	sta	$0600, x
 	sta	$0700, x
-	lda	#$fe
-	sta	$0300, x
-	inx
-	bne	clrmem
+
+	inx			; increment x and
+	bne	clearram	; branch so we can clear out the next byte
+				; for each ram region
+
 
 vblankwait2:			; wait for vblank again, PPU is ready after this
 	bit	$2002

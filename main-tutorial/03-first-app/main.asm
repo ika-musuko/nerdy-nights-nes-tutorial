@@ -4,16 +4,17 @@
 	.inesprg 1		; include 1x 16kb bank of prg code
 	.ineschr 1 		; include 1x 8kb bank of chr data
 
+
+; here we tell the assembler where to put the code in memory
 	.bank	0
 	.org	$8000		; cartridge start
-
 
 ; TODO: understand the following
 ;	- why txs sets up the stack
 ;	- why x is now zero when we increment it
 
 RESET:
-	sei			; disable interrupts (irqs)
+	sei			; disable irq (see $fffe)
 	cld			; disable decimal mode
 
 	ldx	#$40
@@ -71,16 +72,25 @@ forever:
 	jmp	forever
 
 
-; TODO: understand what an NMI is
 NMI:
 	rti
 
-;;;;;;;;;;;;;;;;;;
+
+;; interrupts ;;
 	.bank	1
 	.org	$fffa	; interrupt vector
+			; the layout is
+			; $fffa nmi_handler
+			; $fffc reset_handler
+			; $fffe irq_handler
+
 	.dw	NMI	; jump to NMI label on nmi interrupt
+			; if enabled, nmi happens once per frame
+			; nmi is enabled by default
+
 	.dw	RESET	; jump to RESET label on reset interrupt
-	.dw	0	; external interrupt unused
-;;;;;;;;;;;;;;;;;;
+			; this is what happens when the system starts up
+			
+	.dw	0	; irq_handler unused here
 
 
